@@ -1,42 +1,52 @@
-# WeatherApp
+# 🌤️ React Weather App
 
-WeatherApp is a simple web application built using React that allows users to check the current weather conditions for a given city.
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![OpenWeatherMap](https://img.shields.io/badge/OpenWeatherMap_API-orange?style=flat)
+
+A real-time weather application built with React as my first hands-on project with the framework. Fetches live weather data from the OpenWeatherMap API and displays current conditions for any city worldwide.
+
+Built entirely by hand — no component libraries, no UI frameworks. Intentionally kept as-is to preserve the original learning artifact.
 
 ## Features
 
-- **City Search:** Enter the name of the city to get real-time weather information.
-- **Weather Icons:** Dynamic weather icons based on the current weather conditions.
-- **Details Display:** Temperature, city name, weather description, wind speed, and humidity are displayed.
+- City search with real-time weather fetch
+- Displays temperature, humidity, wind speed, and weather description
+- Dynamic weather icons based on current conditions
+- Handwritten CSS — no Tailwind, no Bootstrap
+
+## Tech Stack
+
+- **React** — component-based UI
+- **OpenWeatherMap API** — live weather data
+- **Vanilla CSS** — handcoded styles
 
 ## Getting Started
 
-Follow these instructions to get a copy of the project up and running on your local machine.
-
 ### Prerequisites
 
-- Node.js and npm installed on your machine.
+Node.js and npm installed. An API key from [OpenWeatherMap](https://openweathermap.org/api) (free tier works).
 
 ### Installation
 
-1. Clone the repository:
--git clone https://github.com/your-username/WeatherApp.git
+```bash
+git clone https://github.com/Yashdafade/react-weather-app.git
+cd react-weather-app
+npm install
+```
 
-2. Change into the project directory:
--cd WeatherApp
+Replace `YOUR_API_KEY` in `WeatherApp.js` with your OpenWeatherMap API key.
 
-3. Install dependencies:
--npm install
+```bash
+npm start
+```
 
-Usage
-1. Obtain an API key from OpenWeatherMap and replace YOUR_API_KEY in WeatherApp.js with your actual API key.
+Open http://localhost:3000 in your browser.
 
-2. Start the application:
-- npm start
-- Open your browser and navigate to http://localhost:3000.
-- Enter the city name and click the search icon to check the weather.
+## Note
 
-- Built With
-React - JavaScript library for building user interfaces.
+This is my first React project — built to learn component architecture, state management with hooks, and API integration. The UI is intentionally handcoded without any library assistance.
 
-- Acknowledgments
-Weather data provided by OpenWeatherMap.
+## Live Demo
+
+[https://yashdafade.github.io/weatherappreact/](https://yashdafade.github.io/weatherappreact/)
