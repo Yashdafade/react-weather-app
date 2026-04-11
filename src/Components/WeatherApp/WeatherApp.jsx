@@ -9,13 +9,20 @@ import rain from '../Assets/rain.png';
 import drizzle from '../Assets/drizzle.png';
 import mist from '../Assets/mist.png';
 
+const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
+
 const WeatherApp = () => {
     const [wicon, setWicon] = useState(clear);
     const [loading, setLoading] = useState(false);
 
     const checkWeather = async () => {
         let CityName = document.getElementById("input-city");
-        let apiKey = "5ae5eacdd6489ed78c15b47d83a6bf8f"
+
+        if (!apiKey) {
+            alert("Weather API key is missing. Please add REACT_APP_WEATHER_API_KEY to your .env file.");
+            return;
+        }
+
         let url = `https://api.openweathermap.org/data/2.5/weather?q=${CityName.value}&APPID=${apiKey}&units=metric`;
 
         let city = document.querySelector('.CityName');
@@ -93,9 +100,9 @@ const WeatherApp = () => {
                 <div className="weather">
                     <div className="display">
                         <img className="image" src={wicon} alt="." />
-                        <h1 className="temperature"></h1>
-                        <h2 className="CityName"></h2>
-                        <h3 className="description"></h3>
+                        <h1 className="temperature">--°C</h1>
+                        <h2 className="CityName">Search for a city</h2>
+                        <h3 className="description">Weather details will appear here</h3>
                     </div>
                     <div className="details">
                         <div className="col">
