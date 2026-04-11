@@ -49,4 +49,4 @@ This is my first React project — built to learn component architecture, state 
 
 ## Live Demo
 
-[https://yashdafade.github.io/weatherappreact/](https://yashdafade.github.io/weatherappreact/)
+[https://yashdafade.github.io/weatherappreact/](https://react-weather-app-nine-opal.vercel.app/)
