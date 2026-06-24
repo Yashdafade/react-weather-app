@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import WeatherCanvas from './components/Scene3D';
@@ -16,10 +16,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [weatherCondition, setWeatherCondition] = useState(null);
+  const [userCountry, setUserCountry] = useState(null);
+
+  const didAutoLocate = useRef(false);
 
   const fetchWeather = useCallback(async (url, forecastUrl) => {
     if (!apiKey) {
-      setError('Weather API key is missing. Please add REACT_APP_WEATHER_API_KEY to your .env file.');
+      setError('API key missing. Add REACT_APP_WEATHER_API_KEY to .env');
       return;
     }
 
@@ -33,11 +36,7 @@ function App() {
       ]);
 
       if (!weatherRes.ok) {
-        if (weatherRes.status === 404) {
-          setError('City not found. Please try another city name.');
-        } else {
-          setError('Something went wrong. Please try again.');
-        }
+        setError(weatherRes.status === 404 ? 'City not found.' : 'Something went wrong.');
         setLoading(false);
         return;
       }
@@ -45,16 +44,20 @@ function App() {
       const weatherData = await weatherRes.json();
       const forecastData = forecastRes.ok ? await forecastRes.json() : null;
 
+      if (weatherData.sys?.country && !userCountry) {
+        setUserCountry(weatherData.sys.country);
+      }
+
       setWeather(weatherData);
       setForecast(forecastData);
       setWeatherCondition(weatherData.weather?.[0]?.main || null);
       setView('dashboard');
     } catch (err) {
-      setError('Network error. Please check your connection.');
+      setError('Network error. Check your connection.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userCountry]);
 
   const handleSearch = useCallback((city) => {
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
@@ -68,27 +71,41 @@ function App() {
     fetchWeather(weatherUrl, forecastUrl);
   }, [fetchWeather]);
 
-  const handleLocationSearch = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+  const detectLocation = useCallback(() => {
+    if (!navigator.geolocation || !apiKey) {
       return;
     }
 
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data[0]?.country) setUserCountry(data[0].country);
+          }
+        } catch (_) { /* ignore — country detection is best-effort */ }
+
         const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
         const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
         fetchWeather(weatherUrl, forecastUrl);
       },
       () => {
-        setError('Unable to get your location. Please allow location access.');
         setLoading(false);
       },
-      { timeout: 10000 }
+      { timeout: 8000 }
     );
   }, [fetchWeather]);
+
+  useEffect(() => {
+    if (didAutoLocate.current) return;
+    didAutoLocate.current = true;
+    detectLocation();
+  }, [detectLocation]);
 
   const handleBack = useCallback(() => {
     setView('landing');
@@ -128,8 +145,9 @@ function App() {
               key="landing"
               onSearch={handleSearch}
               onSearchByCoords={handleSearchByCoords}
-              onLocationSearch={handleLocationSearch}
+              onLocationSearch={detectLocation}
               loading={loading}
+              userCountry={userCountry}
             />
           ) : (
             <WeatherDashboard
