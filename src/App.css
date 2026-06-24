@@ -425,12 +425,12 @@ body {
   color: var(--text-secondary);
 }
 
-.dropdown-pin {
+.dropdown-arrow {
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
-.dropdown-item.active .dropdown-pin {
+.dropdown-item.active .dropdown-arrow {
   color: var(--accent-primary);
 }
 

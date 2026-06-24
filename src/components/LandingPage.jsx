@@ -1,7 +1,62 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
+
+const POPULAR_BY_COUNTRY = {
+  US: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami', 'Seattle'],
+  GB: ['London', 'Manchester', 'Birmingham', 'Liverpool', 'Edinburgh', 'Bristol'],
+  IN: ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad'],
+  AU: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Canberra'],
+  CA: ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa', 'Edmonton'],
+  DE: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Stuttgart'],
+  FR: ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice', 'Bordeaux'],
+  JP: ['Tokyo', 'Osaka', 'Kyoto', 'Yokohama', 'Nagoya', 'Sapporo'],
+  BR: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Curitiba', 'Recife'],
+  AE: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Fujairah'],
+  CN: ['Beijing', 'Shanghai', 'Guangzhou', 'Shenzhen', 'Chengdu', 'Hangzhou'],
+  KR: ['Seoul', 'Busan', 'Incheon', 'Daegu', 'Daejeon', 'Gwangju'],
+  MX: ['Mexico City', 'Guadalajara', 'Monterrey', 'Puebla', 'Cancún', 'Tijuana'],
+  IT: ['Rome', 'Milan', 'Naples', 'Turin', 'Florence', 'Venice'],
+  ES: ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Bilbao', 'Málaga'],
+  RU: ['Moscow', 'Saint Petersburg', 'Novosibirsk', 'Yekaterinburg', 'Kazan', 'Sochi'],
+  ZA: ['Cape Town', 'Johannesburg', 'Durban', 'Pretoria', 'Port Elizabeth', 'Bloemfontein'],
+  NG: ['Lagos', 'Abuja', 'Kano', 'Ibadan', 'Port Harcourt', 'Benin City'],
+  PK: ['Karachi', 'Lahore', 'Islamabad', 'Faisalabad', 'Rawalpindi', 'Multan'],
+  BD: ['Dhaka', 'Chittagong', 'Khulna', 'Rajshahi', 'Sylhet', 'Rangpur'],
+  ID: ['Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Bali', 'Yogyakarta'],
+  PH: ['Manila', 'Cebu', 'Davao', 'Quezon City', 'Makati', 'Taguig'],
+  TR: ['Istanbul', 'Ankara', 'Izmir', 'Antalya', 'Bursa', 'Adana'],
+  SA: ['Riyadh', 'Jeddah', 'Mecca', 'Medina', 'Dammam', 'Tabuk'],
+  EG: ['Cairo', 'Alexandria', 'Giza', 'Luxor', 'Aswan', 'Sharm El Sheikh'],
+  TH: ['Bangkok', 'Chiang Mai', 'Phuket', 'Pattaya', 'Krabi', 'Hua Hin'],
+  VN: ['Hanoi', 'Ho Chi Minh City', 'Da Nang', 'Nha Trang', 'Hue', 'Hai Phong'],
+  MY: ['Kuala Lumpur', 'George Town', 'Johor Bahru', 'Kota Kinabalu', 'Malacca', 'Ipoh'],
+  SG: ['Singapore'],
+  NZ: ['Auckland', 'Wellington', 'Christchurch', 'Hamilton', 'Queenstown', 'Dunedin'],
+  AR: ['Buenos Aires', 'Córdoba', 'Rosario', 'Mendoza', 'Tucumán', 'Mar del Plata'],
+  CL: ['Santiago', 'Valparaíso', 'Concepción', 'Antofagasta', 'Temuco', 'La Serena'],
+  CO: ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Santa Marta'],
+  SE: ['Stockholm', 'Gothenburg', 'Malmö', 'Uppsala', 'Linköping', 'Örebro'],
+  NO: ['Oslo', 'Bergen', 'Trondheim', 'Stavanger', 'Tromsø', 'Drammen'],
+  FI: ['Helsinki', 'Espoo', 'Tampere', 'Turku', 'Oulu', 'Rovaniemi'],
+  DK: ['Copenhagen', 'Aarhus', 'Odense', 'Aalborg', 'Esbjerg', 'Roskilde'],
+  NL: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Eindhoven', 'Groningen'],
+  BE: ['Brussels', 'Antwerp', 'Ghent', 'Bruges', 'Liège', 'Namur'],
+  CH: ['Zurich', 'Geneva', 'Basel', 'Bern', 'Lausanne', 'Lucerne'],
+  AT: ['Vienna', 'Salzburg', 'Innsbruck', 'Graz', 'Linz', 'Klagenfurt'],
+  PL: ['Warsaw', 'Kraków', 'Wrocław', 'Gdańsk', 'Poznań', 'Łódź'],
+  PT: ['Lisbon', 'Porto', 'Faro', 'Coimbra', 'Braga', 'Funchal'],
+  IE: ['Dublin', 'Cork', 'Galway', 'Limerick', 'Waterford', 'Killarney'],
+  GR: ['Athens', 'Thessaloniki', 'Heraklion', 'Patras', 'Rhodes', 'Corfu'],
+  IL: ['Tel Aviv', 'Jerusalem', 'Haifa', 'Eilat', 'Beer Sheva', 'Netanya'],
+  KE: ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Malindi'],
+  GH: ['Accra', 'Kumasi', 'Tamale', 'Takoradi', 'Cape Coast', 'Sunyani'],
+  LK: ['Colombo', 'Kandy', 'Galle', 'Jaffna', 'Negombo', 'Trincomalee'],
+  NP: ['Kathmandu', 'Pokhara', 'Lalitpur', 'Biratnagar', 'Bharatpur', 'Birgunj'],
+};
+
+const DEFAULT_POPULAR = ['Tokyo', 'London', 'New York', 'Paris', 'Sydney', 'Dubai'];
 
 const typewriterTexts = [
   'Check the weather anywhere in the world',
@@ -9,6 +64,11 @@ const typewriterTexts = [
   'Beautiful weather, beautiful interface',
   'Plan your day with accurate data',
 ];
+
+function countryFlag(code) {
+  if (!code || code.length !== 2) return '';
+  return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
 
 function TypewriterText() {
   const [textIndex, setTextIndex] = useState(0);
@@ -33,7 +93,6 @@ function TypewriterText() {
         }
       }
     }, isDeleting ? 25 : 45);
-
     return () => clearTimeout(timeout);
   }, [charIndex, isDeleting, textIndex]);
 
@@ -45,30 +104,26 @@ function TypewriterText() {
   );
 }
 
-// Map a country code to its flag emoji
-function countryFlag(code) {
-  if (!code || code.length !== 2) return '';
-  return code
-    .toUpperCase()
-    .replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
-}
-
-function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) {
+function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, userCountry }) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [fetching, setFetching] = useState(false);
 
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
 
-  // Fetch city suggestions from the OpenWeatherMap Geocoding API
+  const popularCities = useMemo(
+    () => (userCountry && POPULAR_BY_COUNTRY[userCountry]) || DEFAULT_POPULAR,
+    [userCountry]
+  );
+
   const fetchSuggestions = useCallback(async (value) => {
-    if (!apiKey || value.trim().length < 2) {
+    const trimmed = value.trim();
+    if (!apiKey || trimmed.length < 2) {
       setSuggestions([]);
       setShowDropdown(false);
       return;
@@ -79,57 +134,57 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
     abortRef.current = controller;
 
     try {
-      setFetching(true);
+      const hasComma = trimmed.includes(',');
+      const q = (!hasComma && userCountry) ? `${trimmed},${userCountry}` : trimmed;
+
       const res = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(value.trim())}&limit=5&appid=${apiKey}`,
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=5&appid=${apiKey}`,
         { signal: controller.signal }
       );
       if (!res.ok) throw new Error('geocoding failed');
-      const data = await res.json();
+      let data = await res.json();
 
-      // De-duplicate by name + state + country
       const seen = new Set();
-      const unique = data.filter((c) => {
+      data = data.filter((c) => {
         const key = `${c.name}-${c.state || ''}-${c.country}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      setSuggestions(unique);
-      setShowDropdown(unique.length > 0);
+      setSuggestions(data);
+      setShowDropdown(data.length > 0);
       setActiveIndex(-1);
     } catch (err) {
       if (err.name !== 'AbortError') {
         setSuggestions([]);
         setShowDropdown(false);
       }
-    } finally {
-      setFetching(false);
     }
-  }, []);
+  }, [userCountry]);
 
-  // Debounce input changes
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(value), 250);
+    if (value.trim().length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 220);
   };
 
-  const selectSuggestion = (city) => {
-    setQuery(`${city.name}${city.state ? ', ' + city.state : ''}, ${city.country}`);
+  const selectSuggestion = useCallback((city) => {
+    const label = [city.name, city.state, city.country].filter(Boolean).join(', ');
+    setQuery(label);
     setShowDropdown(false);
     setSuggestions([]);
     setActiveIndex(-1);
-    if (onSearchByCoords) {
-      onSearchByCoords(city.lat, city.lon);
-    } else {
-      onSearch(city.name);
-    }
-  };
+    onSearchByCoords(city.lat, city.lon);
+  }, [onSearchByCoords]);
 
-  const handleSearch = (e) => {
+  const handleSubmit = useCallback((e) => {
     if (e) e.preventDefault();
     if (activeIndex >= 0 && suggestions[activeIndex]) {
       selectSuggestion(suggestions[activeIndex]);
@@ -139,49 +194,52 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
       setShowDropdown(false);
       onSearch(query.trim());
     }
-  };
+  }, [activeIndex, suggestions, selectSuggestion, query, onSearch]);
 
   const handleKeyDown = (e) => {
     if (!showDropdown || suggestions.length === 0) {
-      if (e.key === 'Enter') handleSearch(e);
+      if (e.key === 'Enter') handleSubmit(e);
       return;
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % suggestions.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch(e);
-    } else if (e.key === 'Escape') {
-      setShowDropdown(false);
-      setActiveIndex(-1);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % suggestions.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        handleSubmit(e);
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setActiveIndex(-1);
+        break;
+      default:
+        break;
     }
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const close = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
         setShowDropdown(false);
         setActiveIndex(-1);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  // Cleanup timers/requests on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortRef.current) abortRef.current.abort();
     };
   }, []);
-
-  const popularCities = ['Tokyo', 'London', 'New York', 'Paris', 'Sydney', 'Dubai'];
 
   return (
     <motion.div
@@ -229,7 +287,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
           transition={{ delay: 0.28, duration: 0.4, ease: 'easeOut' }}
           ref={wrapperRef}
         >
-          <div className="search-bar-wrapper">
+          <form className="search-bar-wrapper" onSubmit={handleSubmit} role="search">
             <div className="search-icon-left">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
@@ -240,7 +298,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
               ref={inputRef}
               type="text"
               className="search-input"
-              placeholder="Search any city..."
+              placeholder={userCountry ? `Search cities in ${countryFlag(userCountry)} or worldwide...` : 'Search any city...'}
               value={query}
               onChange={handleChange}
               onFocus={() => {
@@ -251,10 +309,14 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
               onKeyDown={handleKeyDown}
               autoComplete="off"
               spellCheck="false"
+              role="combobox"
+              aria-controls="suggestions-listbox"
+              aria-expanded={showDropdown}
+              aria-autocomplete="list"
             />
             <motion.button
+              type="submit"
               className="search-btn"
-              onClick={handleSearch}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               disabled={loading || !query.trim()}
@@ -271,47 +333,43 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
                 </>
               )}
             </motion.button>
-          </div>
+          </form>
 
           <AnimatePresence>
             {showDropdown && suggestions.length > 0 && (
               <motion.ul
                 className="search-dropdown"
-                initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                id="suggestions-listbox"
+                role="listbox"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
               >
                 {suggestions.map((city, i) => (
                   <li
-                    key={`${city.lat}-${city.lon}-${i}`}
-                    className={`dropdown-item ${i === activeIndex ? 'active' : ''}`}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      selectSuggestion(city);
-                    }}
+                    key={`${city.lat.toFixed(4)}-${city.lon.toFixed(4)}`}
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    className={`dropdown-item${i === activeIndex ? ' active' : ''}`}
+                    onMouseDown={(e) => { e.preventDefault(); selectSuggestion(city); }}
                     onMouseEnter={() => setActiveIndex(i)}
                   >
                     <span className="dropdown-flag">{countryFlag(city.country)}</span>
                     <span className="dropdown-text">
                       <span className="dropdown-city">{city.name}</span>
                       <span className="dropdown-region">
-                        {city.state ? `${city.state}, ` : ''}{city.country}
+                        {[city.state, city.country].filter(Boolean).join(', ')}
                       </span>
                     </span>
-                    <svg className="dropdown-pin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                      <circle cx="12" cy="10" r="3" />
+                    <svg className="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m9 18 6-6-6-6" />
                     </svg>
                   </li>
                 ))}
               </motion.ul>
             )}
           </AnimatePresence>
-
-          {fetching && isFocused && query.trim().length >= 2 && (
-            <div className="search-hint">Searching cities…</div>
-          )}
         </motion.div>
 
         <motion.button
@@ -340,7 +398,11 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
           animate={{ opacity: 1 }}
           transition={{ delay: 0.44, duration: 0.35 }}
         >
-          <p className="popular-label">Popular cities</p>
+          <p className="popular-label">
+            {userCountry
+              ? `Popular in ${countryFlag(userCountry)} ${userCountry}`
+              : 'Popular cities'}
+          </p>
           <div className="city-chips">
             {popularCities.map((city, i) => (
               <motion.button
@@ -358,17 +420,6 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading }) 
               </motion.button>
             ))}
           </div>
-        </motion.div>
-
-        <motion.div
-          className="scroll-indicator"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5, y: [0, 8, 0] }}
-          transition={{ delay: 1, duration: 1.6, repeat: Infinity }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m6 9 6 6 6-6" />
-          </svg>
         </motion.div>
       </div>
 
