@@ -62,6 +62,12 @@ function App() {
     fetchWeather(weatherUrl, forecastUrl);
   }, [fetchWeather]);
 
+  const handleSearchByCoords = useCallback((lat, lon) => {
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+    fetchWeather(weatherUrl, forecastUrl);
+  }, [fetchWeather]);
+
   const handleLocationSearch = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
@@ -121,6 +127,7 @@ function App() {
             <LandingPage
               key="landing"
               onSearch={handleSearch}
+              onSearchByCoords={handleSearchByCoords}
               onLocationSearch={handleLocationSearch}
               loading={loading}
             />
