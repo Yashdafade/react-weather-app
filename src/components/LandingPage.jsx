@@ -58,6 +58,12 @@ const POPULAR_BY_COUNTRY = {
 
 const DEFAULT_POPULAR = ['Tokyo', 'London', 'New York', 'Paris', 'Sydney', 'Dubai'];
 
+const weatherEmojis = {
+  Clear: '☀️', Clouds: '☁️', Rain: '🌧️', Drizzle: '🌦️',
+  Snow: '❄️', Thunderstorm: '⛈️', Mist: '🌫️', Smoke: '🌫️',
+  Haze: '🌫️', Fog: '🌫️', Dust: '🌬️',
+};
+
 const typewriterTexts = [
   'Check the weather anywhere in the world',
   'Real-time forecasts at your fingertips',
@@ -79,20 +85,13 @@ function TypewriterText() {
     const currentText = typewriterTexts[textIndex];
     const timeout = setTimeout(() => {
       if (!isDeleting) {
-        if (charIndex < currentText.length) {
-          setCharIndex(charIndex + 1);
-        } else {
-          setTimeout(() => setIsDeleting(true), 1600);
-        }
+        if (charIndex < currentText.length) setCharIndex(charIndex + 1);
+        else setTimeout(() => setIsDeleting(true), 1600);
       } else {
-        if (charIndex > 0) {
-          setCharIndex(charIndex - 1);
-        } else {
-          setIsDeleting(false);
-          setTextIndex((textIndex + 1) % typewriterTexts.length);
-        }
+        if (charIndex > 0) setCharIndex(charIndex - 1);
+        else { setIsDeleting(false); setTextIndex((textIndex + 1) % typewriterTexts.length); }
       }
-    }, isDeleting ? 25 : 45);
+    }, isDeleting ? 20 : 35);
     return () => clearTimeout(timeout);
   }, [charIndex, isDeleting, textIndex]);
 
@@ -104,7 +103,21 @@ function TypewriterText() {
   );
 }
 
-function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, userCountry }) {
+function timeAgo(ts) {
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+const stagger = { animate: { transition: { staggerChildren: 0.04 } } };
+const fadeUp = {
+  initial: { opacity: 0, y: 16, scale: 0.96 },
+  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: 'easeOut' } },
+};
+
+function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, userCountry, recentSearches, onRecentClick }) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -116,6 +129,8 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
   const debounceRef = useRef(null);
   const abortRef = useRef(null);
 
+  const hasRecent = recentSearches && recentSearches.length > 0;
+
   const popularCities = useMemo(
     () => (userCountry && POPULAR_BY_COUNTRY[userCountry]) || DEFAULT_POPULAR,
     [userCountry]
@@ -124,11 +139,8 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
   const fetchSuggestions = useCallback(async (value) => {
     const trimmed = value.trim();
     if (!apiKey || trimmed.length < 2) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
+      setSuggestions([]); setShowDropdown(false); return;
     }
-
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -136,30 +148,23 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
     try {
       const hasComma = trimmed.includes(',');
       const q = (!hasComma && userCountry) ? `${trimmed},${userCountry}` : trimmed;
-
       const res = await fetch(
         `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=5&appid=${apiKey}`,
         { signal: controller.signal }
       );
       if (!res.ok) throw new Error('geocoding failed');
       let data = await res.json();
-
       const seen = new Set();
       data = data.filter((c) => {
         const key = `${c.name}-${c.state || ''}-${c.country}`;
         if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+        seen.add(key); return true;
       });
-
       setSuggestions(data);
       setShowDropdown(data.length > 0);
       setActiveIndex(-1);
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setSuggestions([]);
-        setShowDropdown(false);
-      }
+      if (err.name !== 'AbortError') { setSuggestions([]); setShowDropdown(false); }
     }
   }, [userCountry]);
 
@@ -167,33 +172,20 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
     const value = e.target.value;
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length < 2) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
-    debounceRef.current = setTimeout(() => fetchSuggestions(value), 220);
+    if (value.trim().length < 2) { setSuggestions([]); setShowDropdown(false); return; }
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 180);
   };
 
   const selectSuggestion = useCallback((city) => {
-    const label = [city.name, city.state, city.country].filter(Boolean).join(', ');
-    setQuery(label);
-    setShowDropdown(false);
-    setSuggestions([]);
-    setActiveIndex(-1);
+    setQuery([city.name, city.state, city.country].filter(Boolean).join(', '));
+    setShowDropdown(false); setSuggestions([]); setActiveIndex(-1);
     onSearchByCoords(city.lat, city.lon);
   }, [onSearchByCoords]);
 
   const handleSubmit = useCallback((e) => {
     if (e) e.preventDefault();
-    if (activeIndex >= 0 && suggestions[activeIndex]) {
-      selectSuggestion(suggestions[activeIndex]);
-      return;
-    }
-    if (query.trim()) {
-      setShowDropdown(false);
-      onSearch(query.trim());
-    }
+    if (activeIndex >= 0 && suggestions[activeIndex]) { selectSuggestion(suggestions[activeIndex]); return; }
+    if (query.trim()) { setShowDropdown(false); onSearch(query.trim()); }
   }, [activeIndex, suggestions, selectSuggestion, query, onSearch]);
 
   const handleKeyDown = (e) => {
@@ -202,32 +194,18 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
       return;
     }
     switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setActiveIndex((i) => (i + 1) % suggestions.length);
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        handleSubmit(e);
-        break;
-      case 'Escape':
-        setShowDropdown(false);
-        setActiveIndex(-1);
-        break;
-      default:
-        break;
+      case 'ArrowDown': e.preventDefault(); setActiveIndex((i) => (i + 1) % suggestions.length); break;
+      case 'ArrowUp': e.preventDefault(); setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1)); break;
+      case 'Enter': e.preventDefault(); handleSubmit(e); break;
+      case 'Escape': setShowDropdown(false); setActiveIndex(-1); break;
+      default: break;
     }
   };
 
   useEffect(() => {
     const close = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setShowDropdown(false);
-        setActiveIndex(-1);
+        setShowDropdown(false); setActiveIndex(-1);
       }
     };
     document.addEventListener('mousedown', close);
@@ -243,48 +221,63 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
 
   return (
     <motion.div
-      className="landing-page"
+      className={`landing-page ${hasRecent ? 'landing-compact' : ''}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.35 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.25 }}
     >
       <div className="landing-content">
-        <motion.div
-          className="landing-badge"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.35 }}
-        >
-          <span className="badge-dot" />
-          <span>Powered by OpenWeatherMap</span>
-        </motion.div>
+        {!hasRecent && (
+          <>
+            <motion.div
+              className="landing-badge"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.03, duration: 0.25 }}
+            >
+              <span className="badge-dot" />
+              <span>Powered by OpenWeatherMap</span>
+            </motion.div>
 
-        <motion.h1
-          className="landing-title"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.45, ease: 'easeOut' }}
-        >
-          <span className="title-line">Discover the</span>
-          <span className="title-gradient">Weather</span>
-          <span className="title-line">Around You</span>
-        </motion.h1>
+            <motion.h1
+              className="landing-title"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.06, duration: 0.3, ease: 'easeOut' }}
+            >
+              <span className="title-line">Discover the</span>
+              <span className="title-gradient">Weather</span>
+              <span className="title-line">Around You</span>
+            </motion.h1>
 
-        <motion.p
-          className="landing-subtitle"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.35 }}
-        >
-          <TypewriterText />
-        </motion.p>
+            <motion.p
+              className="landing-subtitle"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12, duration: 0.25 }}
+            >
+              <TypewriterText />
+            </motion.p>
+          </>
+        )}
+
+        {hasRecent && (
+          <motion.h2
+            className="landing-greeting"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            Nimbus Weather
+          </motion.h2>
+        )}
 
         <motion.div
           className={`search-container ${isFocused ? 'focused' : ''}`}
-          initial={{ opacity: 0, y: 18, scale: 0.97 }}
+          initial={{ opacity: 0, y: 14, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.28, duration: 0.4, ease: 'easeOut' }}
+          transition={{ delay: hasRecent ? 0.04 : 0.18, duration: 0.3, ease: 'easeOut' }}
           ref={wrapperRef}
         >
           <form className="search-bar-wrapper" onSubmit={handleSubmit} role="search">
@@ -301,10 +294,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
               placeholder={userCountry ? `Search cities in ${countryFlag(userCountry)} or worldwide...` : 'Search any city...'}
               value={query}
               onChange={handleChange}
-              onFocus={() => {
-                setIsFocused(true);
-                if (suggestions.length > 0) setShowDropdown(true);
-              }}
+              onFocus={() => { setIsFocused(true); if (suggestions.length > 0) setShowDropdown(true); }}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
               autoComplete="off"
@@ -318,17 +308,14 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
               type="submit"
               className="search-btn"
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.93 }}
               disabled={loading || !query.trim()}
             >
-              {loading ? (
-                <div className="btn-spinner" />
-              ) : (
+              {loading ? <div className="btn-spinner" /> : (
                 <>
                   <span>Search</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14" />
-                    <path d="m12 5 7 7-7 7" />
+                    <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                   </svg>
                 </>
               )}
@@ -344,7 +331,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
+                transition={{ duration: 0.12, ease: 'easeOut' }}
               >
                 {suggestions.map((city, i) => (
                   <li
@@ -358,9 +345,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
                     <span className="dropdown-flag">{countryFlag(city.country)}</span>
                     <span className="dropdown-text">
                       <span className="dropdown-city">{city.name}</span>
-                      <span className="dropdown-region">
-                        {[city.state, city.country].filter(Boolean).join(', ')}
-                      </span>
+                      <span className="dropdown-region">{[city.state, city.country].filter(Boolean).join(', ')}</span>
                     </span>
                     <svg className="dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m9 18 6-6-6-6" />
@@ -375,33 +360,62 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
         <motion.button
           className="location-btn"
           onClick={onLocationSearch}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.36, duration: 0.3 }}
+          transition={{ delay: hasRecent ? 0.08 : 0.24, duration: 0.22 }}
           whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.93 }}
           disabled={loading}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v4" />
-            <path d="M12 18v4" />
-            <path d="M2 12h4" />
-            <path d="M18 12h4" />
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v4" /><path d="M12 18v4" /><path d="M2 12h4" /><path d="M18 12h4" />
           </svg>
           <span>Use my location</span>
         </motion.button>
+
+        {hasRecent && (
+          <motion.div
+            className="recent-section"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.28 }}
+          >
+            <p className="section-label">Recent Searches</p>
+            <motion.div className="recent-grid" variants={stagger} initial="initial" animate="animate">
+              {recentSearches.map((entry) => (
+                <motion.button
+                  key={`${entry.lat}-${entry.lon}`}
+                  className="recent-card"
+                  variants={fadeUp}
+                  whileHover={{ scale: 1.04, y: -4 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => onRecentClick(entry)}
+                >
+                  <div className="recent-card-top">
+                    <span className="recent-emoji">{weatherEmojis[entry.condition] || '🌤️'}</span>
+                    <span className="recent-temp">{entry.temp}°</span>
+                  </div>
+                  <div className="recent-card-bottom">
+                    <span className="recent-city">{entry.name}</span>
+                    <span className="recent-meta">
+                      {countryFlag(entry.country)} {entry.description || entry.condition}
+                    </span>
+                    <span className="recent-time">{timeAgo(entry.timestamp)}</span>
+                  </div>
+                </motion.button>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
 
         <motion.div
           className="popular-cities"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.44, duration: 0.35 }}
+          transition={{ delay: hasRecent ? 0.2 : 0.32, duration: 0.25 }}
         >
           <p className="popular-label">
-            {userCountry
-              ? `Popular in ${countryFlag(userCountry)} ${userCountry}`
-              : 'Popular cities'}
+            {userCountry ? `Popular in ${countryFlag(userCountry)} ${userCountry}` : 'Popular cities'}
           </p>
           <div className="city-chips">
             {popularCities.map((city, i) => (
@@ -411,7 +425,7 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
                 onClick={() => onSearch(city)}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.48 + i * 0.04, duration: 0.25 }}
+                transition={{ delay: (hasRecent ? 0.24 : 0.36) + i * 0.03, duration: 0.2 }}
                 whileHover={{ scale: 1.1, y: -3 }}
                 whileTap={{ scale: 0.9 }}
                 disabled={loading}
@@ -423,11 +437,13 @@ function LandingPage({ onSearch, onSearchByCoords, onLocationSearch, loading, us
         </motion.div>
       </div>
 
-      <div className="landing-decorations">
-        <div className="deco-circle deco-1" />
-        <div className="deco-circle deco-2" />
-        <div className="deco-circle deco-3" />
-      </div>
+      {!hasRecent && (
+        <div className="landing-decorations">
+          <div className="deco-circle deco-1" />
+          <div className="deco-circle deco-2" />
+          <div className="deco-circle deco-3" />
+        </div>
+      )}
     </motion.div>
   );
 }
