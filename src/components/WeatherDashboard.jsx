@@ -15,7 +15,7 @@ const weatherEmojis = {
   Dust: '🌬️',
 };
 
-function AnimatedNumber({ value, suffix = '', duration = 1.2 }) {
+function AnimatedNumber({ value, suffix = '', duration = 0.8 }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
 
@@ -47,7 +47,7 @@ function WindDirectionArrow({ degree }) {
       style={{ transform: `rotate(${degree}deg)` }}
       initial={{ rotate: 0 }}
       animate={{ rotate: degree }}
-      transition={{ duration: 1, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2v20" />
@@ -61,9 +61,9 @@ function DetailCard({ icon, label, value, unit, delay = 0, children }) {
   return (
     <motion.div
       className="detail-card"
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
+      initial={{ opacity: 0, y: 20, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay, duration: 0.5, ease: 'easeOut' }}
+      transition={{ delay, duration: 0.32, ease: 'easeOut' }}
       whileHover={{ scale: 1.03, y: -4 }}
     >
       <div className="detail-card-header">
@@ -91,9 +91,9 @@ function ForecastCard({ item, unit, index }) {
   return (
     <motion.div
       className="forecast-card"
-      initial={{ opacity: 0, x: 30 }}
+      initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3 + index * 0.05, duration: 0.4 }}
+      transition={{ delay: 0.12 + index * 0.03, duration: 0.28 }}
       whileHover={{ scale: 1.05, y: -5 }}
     >
       <span className="forecast-day">{day}</span>
@@ -180,8 +180,8 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
       className="dashboard"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, y: 30 }}
-      transition={{ duration: 0.6 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.35 }}
     >
       <div className="dashboard-header">
         <motion.button
@@ -191,7 +191,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.08, duration: 0.3 }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" />
@@ -206,7 +206,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.08, duration: 0.3 }}
         >
           <span className={unit === 'metric' ? 'active' : ''}>°C</span>
           <span className="toggle-divider">/</span>
@@ -217,16 +217,16 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
       <div className="dashboard-content">
         <motion.div
           className="main-weather"
-          initial={{ opacity: 0, y: 40, scale: 0.9 }}
+          initial={{ opacity: 0, y: 24, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.7, ease: 'easeOut' }}
+          transition={{ delay: 0.05, duration: 0.45, ease: 'easeOut' }}
         >
           <div className="weather-location">
             <motion.h2
               className="city-name"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.15, duration: 0.3 }}
             >
               {weather.name}
               {weather.sys.country && (
@@ -237,7 +237,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
               className="weather-date"
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.7 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.22, duration: 0.3 }}
             >
               {new Date(weather.dt * 1000).toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -255,7 +255,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
                 y: [0, -10, 0],
                 rotate: [0, 5, -5, 0],
               }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             >
               {emoji}
             </motion.span>
@@ -274,7 +274,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
             className="weather-description"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.28, duration: 0.3 }}
           >
             <span className="description-text">
               {weather.weather[0].description.charAt(0).toUpperCase() + weather.weather[0].description.slice(1)}
@@ -290,7 +290,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>}
             label="Wind"
             value={<><AnimatedNumber value={windSpeed} /> <span className="detail-unit">{windUnit}</span></>}
-            delay={0.3}
+            delay={0.15}
           >
             {weather.wind.deg !== undefined && (
               <div className="wind-info">
@@ -306,14 +306,14 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>}
             label="Humidity"
             value={<AnimatedNumber value={weather.main.humidity} suffix="%" />}
-            delay={0.35}
+            delay={0.2}
           >
             <div className="humidity-bar-container">
               <motion.div
                 className="humidity-bar"
                 initial={{ width: 0 }}
                 animate={{ width: `${weather.main.humidity}%` }}
-                transition={{ delay: 0.8, duration: 1, ease: 'easeOut' }}
+                transition={{ delay: 0.4, duration: 0.7, ease: 'easeOut' }}
               />
             </div>
           </DetailCard>
@@ -322,27 +322,27 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M12 2v20"/><circle cx="12" cy="12" r="10"/></svg>}
             label="Pressure"
             value={<AnimatedNumber value={weather.main.pressure} suffix=" hPa" />}
-            delay={0.4}
+            delay={0.24}
           />
 
           <DetailCard
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}
             label="Visibility"
             value={<>{(weather.visibility / 1000).toFixed(1)} <span className="detail-unit">km</span></>}
-            delay={0.45}
+            delay={0.28}
           />
 
           <DetailCard
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>}
             label="Cloudiness"
             value={<AnimatedNumber value={weather.clouds.all} suffix="%" />}
-            delay={0.5}
+            delay={0.32}
           />
 
           <DetailCard
             icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>}
             label="Sunrise & Sunset"
-            delay={0.55}
+            delay={0.36}
             value=""
           >
             <SunProgress
@@ -356,9 +356,9 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
         {filteredForecast.length > 0 && (
           <motion.div
             className="forecast-section"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
+            transition={{ delay: 0.34, duration: 0.32 }}
           >
             <h3 className="section-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -381,7 +381,7 @@ function WeatherDashboard({ weather, forecast, onBack, unit, onToggleUnit }) {
           className="footer-info"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
-          transition={{ delay: 1 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
         >
           Last updated: {new Date(weather.dt * 1000).toLocaleTimeString('en-US', {
             hour: 'numeric',
